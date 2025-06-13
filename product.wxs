@@ -27,9 +27,11 @@
                               KeyPath="yes" />
                         <File Id="IconFile" 
                               Source="icon.png" />
-                        <File Id="SoundsFolder" 
-                              Source="sounds\*" 
-                              Destination="sounds" />
+                        <CreateFolder Directory="INSTALLFOLDER" />
+                        <CopyFile Id="CopySounds" 
+                                 SourceProperty="SOURCEDIR" 
+                                 SourceName="sounds" 
+                                 DestinationDirectory="INSTALLFOLDER" />
                     </Component>
                 </Directory>
             </Directory>
@@ -58,5 +60,8 @@
         <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
             <ComponentRef Id="ApplicationShortcut" />
         </ComponentGroup>
+
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+        <UIRef Id="WixUI_InstallDir" />
     </Product>
 </Wix> 
