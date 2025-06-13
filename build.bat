@@ -22,7 +22,7 @@ if exist "build" rmdir /s /q "build"
 
 :: Build the application
 echo Building application...
-pyinstaller --clean --onefile --windowed --icon=icon.png main.py
+pyinstaller --clean --onefile --windowed --icon=icon.png --add-data "icon.png;." main.py
 
 echo Build completed! Check the dist folder for the executable.
 pause 

@@ -9,6 +9,7 @@ from PIL import Image
 from threading import Thread
 from typing import List, Optional
 import subprocess
+import traceback
 
 # Hide console window
 ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
@@ -25,24 +26,30 @@ sounds_folder = os.path.join(base_dir, "sounds")
 # Ensure sounds folder exists (create if not)
 os.makedirs(sounds_folder, exist_ok=True)
 
+SUPPORTED_FORMATS = ('.mp3', '.wav', '.ogg', '.flac')
+VOLUME_STEP = 0.1
+
 class MusicPlayer:
     def __init__(self):
         self.music_files: List[str] = []
         self.current_track_index: int = 0
         self.is_playing: bool = True
         self.icon: Optional[pystray.Icon] = None
+        self.repeat_mode: bool = False  # False = Random, True = Repeat Current
+        self.volume: float = 0.5  # 50% default
         pygame.mixer.init()
+        pygame.mixer.music.set_volume(self.volume)
         self.load_music_files()
         self.start_playback()
 
     def load_music_files(self) -> None:
-        """Load all .mp3 files from the sounds folder."""
+        """Load all supported files from the sounds folder."""
         try:
             self.music_files = [
                 f for f in os.listdir(sounds_folder)
-                if f.lower().endswith(".mp3")
+                if f.lower().endswith(SUPPORTED_FORMATS)
             ]
-
+            self.music_files.sort()
             if not self.music_files:
                 self.show_empty_folder_prompt()
         except Exception as e:
@@ -78,8 +85,15 @@ class MusicPlayer:
         sys.exit(0)
 
     def play_random(self) -> None:
-        """Play a random track."""
-        self.current_track_index = random.randint(0, len(self.music_files) - 1)
+        if len(self.music_files) == 1:
+            self.current_track_index = 0
+        else:
+            idx = self.current_track_index
+            while True:
+                new_idx = random.randint(0, len(self.music_files) - 1)
+                if new_idx != idx:
+                    break
+            self.current_track_index = new_idx
         self.play_current_track()
 
     def play_next(self) -> None:
@@ -96,8 +110,10 @@ class MusicPlayer:
         """Play the current track."""
         try:
             pygame.mixer.music.load(os.path.join(sounds_folder, self.music_files[self.current_track_index]))
+            pygame.mixer.music.set_volume(self.volume)
             pygame.mixer.music.play()
             self.update_menu()
+            self.update_tooltip()
         except Exception as e:
             self.show_error("Playback Error", f"Failed to play track: {str(e)}")
 
@@ -118,13 +134,43 @@ class MusicPlayer:
         """Get the name of the current track."""
         return self.music_files[self.current_track_index]
 
+    def volume_up(self) -> None:
+        self.volume = min(1.0, self.volume + VOLUME_STEP)
+        pygame.mixer.music.set_volume(self.volume)
+        self.update_menu()
+        self.update_tooltip()
+
+    def volume_down(self) -> None:
+        self.volume = max(0.0, self.volume - VOLUME_STEP)
+        pygame.mixer.music.set_volume(self.volume)
+        self.update_menu()
+        self.update_tooltip()
+
+    def toggle_repeat_mode(self) -> None:
+        self.repeat_mode = not self.repeat_mode
+        self.update_menu()
+        self.update_tooltip()
+
+    def get_playtime(self) -> str:
+        try:
+            pos = pygame.mixer.music.get_pos() // 1000
+            mins, secs = divmod(pos, 60)
+            return f"{mins:02}:{secs:02}"
+        except Exception:
+            return "00:00"
+
     def create_menu(self) -> pystray.Menu:
         """Create the system tray menu."""
+        repeat_label = "Repeat: ON" if self.repeat_mode else "Repeat: OFF (Random)"
         return pystray.Menu(
             pystray.MenuItem(f"Currently Playing: {self.get_current_track()}", None, enabled=False),
+            pystray.MenuItem(f"Playtime: {self.get_playtime()}", None, enabled=False),
             pystray.MenuItem("Next", lambda: self.play_next()),
             pystray.MenuItem("Previous", lambda: self.play_previous()),
             pystray.MenuItem("Play/Pause", lambda: self.toggle_play_pause()),
+            pystray.MenuItem("Volume Up", lambda: self.volume_up()),
+            pystray.MenuItem("Volume Down", lambda: self.volume_down()),
+            pystray.MenuItem(repeat_label, lambda: self.toggle_repeat_mode()),
             pystray.MenuItem("Add Music", lambda: self.open_sounds_folder()),
             pystray.MenuItem("Exit", lambda: self.icon.stop() if self.icon else None)
         )
@@ -133,6 +179,12 @@ class MusicPlayer:
         """Update the system tray menu."""
         if self.icon:
             self.icon.menu = self.create_menu()
+
+    def update_tooltip(self) -> None:
+        if self.icon:
+            track = self.get_current_track()
+            playtime = self.get_playtime()
+            self.icon.title = f"Playing: {track} ({playtime})"
 
     def setup_tray(self) -> None:
         """Setup the system tray icon."""
@@ -145,6 +197,7 @@ class MusicPlayer:
                 "Background Music Player",
                 self.create_menu()
             )
+            self.update_tooltip()
             self.icon.run()
         except Exception as e:
             self.show_error("Tray Error", f"Failed to setup system tray: {str(e)}")
@@ -161,11 +214,16 @@ class MusicPlayer:
 
             while True:
                 if not pygame.mixer.music.get_busy() and self.is_playing:
-                    self.play_random()
-                time.sleep(0.5)
+                    if self.repeat_mode:
+                        self.play_current_track()
+                    else:
+                        self.play_random()
+                time.sleep(0.2)  # Lower CPU usage
         except Exception as e:
-            self.show_error("Runtime Error", f"An error occurred: {str(e)}")
-            sys.exit(1)
+            # Silent crash recovery: auto-restart
+            traceback.print_exc()
+            time.sleep(1)
+            os.execl(sys.executable, sys.executable, *sys.argv)
 
 if __name__ == "__main__":
-    player = MusicPlayer()
+    MusicPlayer()

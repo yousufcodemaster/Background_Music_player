@@ -14,54 +14,70 @@
         <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
         <MediaTemplate EmbedCab="yes" />
 
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+        <Property Id="RUNATSTARTUP" Value="0" />
+
         <Feature Id="ProductFeature" Title="BackgroundMusicPlayer" Level="1">
-            <ComponentGroupRef Id="ProductComponents" />
+            <ComponentRef Id="MainExe" />
+            <ComponentRef Id="SoundsComponent" />
+            <ComponentRef Id="AppShortcut" />
+            <ComponentRef Id="StartupRegistry" />
         </Feature>
 
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFilesFolder">
                 <Directory Id="INSTALLFOLDER" Name="BackgroundMusicPlayer">
-                    <Component Id="ProductComponents" Guid="*">
-                        <File Id="ApplicationExecutable" 
-                              Source="dist\main.exe" 
-                              KeyPath="yes" />
-                        <File Id="IconFile" 
-                              Source="icon.png" />
-                        <CreateFolder Directory="INSTALLFOLDER" />
-                        <CopyFile Id="CopySounds" 
-                                 SourceProperty="SOURCEDIR" 
-                                 SourceName="sounds" 
-                                 DestinationDirectory="INSTALLFOLDER" />
+                    <Component Id="MainExe" Guid="A1B2C3D4-E5F6-47A8-9B0C-1D2E3F4A5B6C">
+                        <File Id="ApplicationExecutable" Source="dist\main.exe" KeyPath="yes" />
+                        <File Id="IconFile" Source="dist\icon.png" />
+                        <CreateFolder />
                     </Component>
+                    <Component Id="StartupRegistry" Guid="B2C3D4E5-F6A7-48B9-0C1D-2E3F4A5B6C7D">
+                        <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="BackgroundMusicPlayer" Type="string" Value="[INSTALLFOLDER]main.exe" Action="write" />
+                        <Condition>RUNATSTARTUP=1</Condition>
+                    </Component>
+                    <Directory Id="SoundsFolder" Name="sounds">
+                        <Component Id="SoundsComponent" Guid="C3D4E5F6-A7B8-49C0-1D2E-3F4A5B6C7D8E">
+                            <CreateFolder />
+                            <RemoveFolder Id="RemoveSoundsFolder" On="uninstall" />
+                        </Component>
+                    </Directory>
                 </Directory>
             </Directory>
             <Directory Id="ProgramMenuFolder">
-                <Directory Id="ApplicationProgramsFolder" Name="BackgroundMusicPlayer">
-                    <Component Id="ApplicationShortcut" Guid="*">
-                        <Shortcut Id="ApplicationStartMenuShortcut" 
-                                 Name="Background Music Player" 
-                                 Description="Background Music Player Application" 
-                                 Target="[#ApplicationExecutable]" 
-                                 WorkingDirectory="INSTALLFOLDER" />
-                        <RemoveFolder Id="CleanUpShortCut" 
-                                     Directory="ApplicationProgramsFolder" 
-                                     On="uninstall" />
-                        <RegistryValue Root="HKCU" 
-                                     Key="Software\BackgroundMusicPlayer" 
-                                     Name="installed" 
-                                     Type="integer" 
-                                     Value="1" 
-                                     KeyPath="yes" />
+                <Directory Id="AppShortcutDir" Name="Background Music Player">
+                    <Component Id="AppShortcut" Guid="D4E5F6A7-B8C9-40D1-2E3F-4A5B6C7D8E9F">
+                        <Shortcut Id="StartMenuShortcut"
+                                 Name="Background Music Player"
+                                 Description="Background Music Player"
+                                 Target="[INSTALLFOLDER]main.exe"
+                                 WorkingDirectory="INSTALLFOLDER"
+                                 Icon="IconFile" />
+                        <RemoveFolder Id="RemoveShortcutDir" On="uninstall" />
+                        <RegistryValue Root="HKCU" Key="Software\BackgroundMusicPlayer" Name="installed" Type="integer" Value="1" KeyPath="yes" />
                     </Component>
                 </Directory>
             </Directory>
         </Directory>
 
-        <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-            <ComponentRef Id="ApplicationShortcut" />
-        </ComponentGroup>
-
-        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
         <UIRef Id="WixUI_InstallDir" />
+        <UIRef Id="WixUI_ErrorProgressText" />
+
+        <Property Id="ARPPRODUCTICON" Value="IconFile" />
+
+        <Icon Id="IconFile" SourceFile="dist\icon.png" />
+
+        <CustomAction Id="SetSoundsFolderHidden" Directory="SoundsFolder" ExeCommand="attrib +h [SOUNDSFOLDER]" Execute="deferred" Return="ignore"/>
+        <InstallExecuteSequence>
+            <Custom Action="SetSoundsFolderHidden" After="InstallFiles">NOT REMOVE</Custom>
+        </InstallExecuteSequence>
+
+        <UI>
+            <DialogRef Id="InstallDirDlg" />
+            <Publish Dialog="InstallDirDlg" Control="Next" Event="DoAction" Value="SetRunAtStartupProperty">1</Publish>
+        </UI>
+        <CustomAction Id="SetRunAtStartupProperty" Property="RUNATSTARTUP" Value="[RUNATSTARTUP]" />
+        <WixVariable Id="WixUIBannerBmp" Value="dist\icon.png" />
+        <WixVariable Id="WixUIDialogBmp" Value="dist\icon.png" />
     </Product>
 </Wix> 
