@@ -1,0 +1,27 @@
+# Build directories
+dist/
+build/
+__pycache__/
+*.pyc
+
+# PyInstaller files
+*.spec
+*.manifest
+*.wixobj
+*.wixpdb
+*.msi
+
+# IDE files
+.vscode/
+.idea/
+
+# Environment files
+.env
+venv/
+env/
+
+# GUID file
+guid.txt
+
+# Logs
+*.log 

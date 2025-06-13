@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" 
+             Name="Background Music Player" 
+             Language="1033" 
+             Version="1.0.0.0" 
+             Manufacturer="Doodlyyousuf" 
+             UpgradeCode="81da60b7-62ef-428f-b63c-3c0e16d1b3cc">
+        
+        <Package InstallerVersion="200" 
+                 Compressed="yes" 
+                 InstallScope="perMachine" />
+
+        <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+        <MediaTemplate EmbedCab="yes" />
+
+        <Feature Id="ProductFeature" Title="BackgroundMusicPlayer" Level="1">
+            <ComponentGroupRef Id="ProductComponents" />
+        </Feature>
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="INSTALLFOLDER" Name="BackgroundMusicPlayer">
+                    <Component Id="ProductComponents" Guid="*">
+                        <File Id="ApplicationExecutable" 
+                              Source="dist\main.exe" 
+                              KeyPath="yes" />
+                        <File Id="IconFile" 
+                              Source="icon.png" />
+                        <File Id="SoundsFolder" 
+                              Source="sounds\*" 
+                              Destination="sounds" />
+                    </Component>
+                </Directory>
+            </Directory>
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="BackgroundMusicPlayer">
+                    <Component Id="ApplicationShortcut" Guid="*">
+                        <Shortcut Id="ApplicationStartMenuShortcut" 
+                                 Name="Background Music Player" 
+                                 Description="Background Music Player Application" 
+                                 Target="[#ApplicationExecutable]" 
+                                 WorkingDirectory="INSTALLFOLDER" />
+                        <RemoveFolder Id="CleanUpShortCut" 
+                                     Directory="ApplicationProgramsFolder" 
+                                     On="uninstall" />
+                        <RegistryValue Root="HKCU" 
+                                     Key="Software\BackgroundMusicPlayer" 
+                                     Name="installed" 
+                                     Type="integer" 
+                                     Value="1" 
+                                     KeyPath="yes" />
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+            <ComponentRef Id="ApplicationShortcut" />
+        </ComponentGroup>
+    </Product>
+</Wix> 

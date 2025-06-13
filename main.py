@@ -47,18 +47,21 @@ def play_random():
     current_track_index = random.randint(0, len(music_files) - 1)
     pygame.mixer.music.load(os.path.join(sounds_folder, music_files[current_track_index]))
     pygame.mixer.music.play()
+    update_menu()
 
 def play_next():
     global current_track_index
     current_track_index = (current_track_index + 1) % len(music_files)
     pygame.mixer.music.load(os.path.join(sounds_folder, music_files[current_track_index]))
     pygame.mixer.music.play()
+    update_menu()
 
 def play_previous():
     global current_track_index
     current_track_index = (current_track_index - 1) % len(music_files)
     pygame.mixer.music.load(os.path.join(sounds_folder, music_files[current_track_index]))
     pygame.mixer.music.play()
+    update_menu()
 
 def toggle_play_pause():
     global is_playing
@@ -67,18 +70,23 @@ def toggle_play_pause():
     else:
         pygame.mixer.music.unpause()
     is_playing = not is_playing
+    update_menu()
 
 def get_current_track():
     return music_files[current_track_index]
 
 def create_menu():
     return pystray.Menu(
-        pystray.MenuItem("Currently Playing: " + get_current_track(), None, enabled=False),
+        pystray.MenuItem(f"Currently Playing: {get_current_track()}", None, enabled=False),
         pystray.MenuItem("Next", lambda: play_next()),
         pystray.MenuItem("Previous", lambda: play_previous()),
         pystray.MenuItem("Play/Pause", lambda: toggle_play_pause()),
         pystray.MenuItem("Exit", lambda: icon.stop())
     )
+
+def update_menu():
+    if icon:
+        icon.menu = create_menu()
 
 def setup_tray():
     global icon
